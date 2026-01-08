@@ -28,11 +28,10 @@ end
 
 function demo1_draw()
     if grid_on then draw_grid() end
-    print("demo: " .. demo_i .. " (grid & snap)", 1, 7, 7)
+    
     print("x:" .. x .. "  y:" .. y, 1, 13, 7)
     print("tx:" .. flr(x / 8) .. "  ty:" .. flr(y / 8), 1, 19, 7)
     print("speed:" .. tostring(fmt(spd, 2)))
-    print(grid_on)
 
     draw_crosshair()
 end

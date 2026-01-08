@@ -79,7 +79,6 @@ function demo2_draw()
     rectfill(bar_x + 1, 20 + bar_h - fill_h, bar_x + 5, 20 + bar_h, 8)
 
     -- HUD
-    print("demo: " .. demo_i .. " (jumping)", 1, 7, 7)
     print("px:" .. fmt(px, 2) .. " py:" .. fmt(py, 2), 1, 13, 7)
     print("vy:" .. fmt(vy, 3) .. " g:" .. fmt(params[1].val, 3) .. " jump:" .. fmt(params[2].val, 2), 1, 19, 7)
     print("press X to jump", 1, 25, 6)
