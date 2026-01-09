@@ -86,7 +86,3 @@ function demo2_draw()
     print("param: " .. params[param_i].name .. "=" .. fmt(params[param_i].val, 3), 1, 37, 7)
 end
 
-function fmt(n, d)
-    local p = 10 ^ (d or 2)
-    return (flr(n * p + 0.5) / p)
-end

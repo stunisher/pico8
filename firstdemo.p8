@@ -1,6 +1,7 @@
 pico-8 cartridge // http://www.pico-8.com
 version 43
 __lua__
+#include firstdemo/helpers.lua
 #include firstdemo/demo.lua
 #include firstdemo/demo1.lua
 #include firstdemo/demo2.lua

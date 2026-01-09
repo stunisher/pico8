@@ -106,9 +106,3 @@ function demo3_draw()
     print(p.name .. ": " .. tostring(fmt(p.val,3)), 1, 43, 7)
   end
 end
-
-function normalize(dx,dy)
-  local l = sqrt(dx*dx + dy*dy)
-  if l > 0 then return dx / l, dy / l end
-  return 0,0
-end

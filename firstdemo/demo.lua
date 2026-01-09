@@ -51,6 +51,3 @@ function _draw()
     print("demo: " .. demo_i .. " "..demos[demo_i].name, 1, 7, 7)
 end
 
-function was_pressed(i)
-    return btn(i) and not prev_btn[i + 1]
-end
