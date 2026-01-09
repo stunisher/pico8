@@ -1,7 +1,8 @@
 function _init()
     demos = {
         { name = "grid & snap", init = demo1_init, update = demo1_update, draw = demo1_draw },
-        { name = "jumping",     init = demo2_init, update = demo2_update, draw = demo2_draw }
+        { name = "jumping",     init = demo2_init, update = demo2_update, draw = demo2_draw },
+        { name = "orbiting",    init = demo3_init, update = demo3_update, draw = demo3_draw }
     }
     demo_count = #demos
     demo_i = 1
