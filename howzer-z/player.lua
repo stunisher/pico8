@@ -8,13 +8,27 @@ local SPR_UP_WALK = 6
 player = entity:new({
     x = 64, y = 64,
     hitbox = { 'circle', 4 },
-    spd = 1.5, hp = 10, r = 4,
+    spd = 1.1, hp = 10, r = 4,
     atk_cooldown = 20,
     atk_timer = 0,
     atk_range = 10,
     atk_damage = 1,
+    anim = 0, face = 3,
     update = function(self)
         local dx, dy = 0, 0
+        if inv_open then
+            if btnp(0) then inv_sel = max(1, inv_sel - 1) end
+            if btnp(1) then inv_sel = min(3, inv_sel + 1) end
+            if not btn(5) then
+                inv_open = false inv_hold = 0
+            end
+            self.anim = 0
+            return
+        end
+        if scene == "outdoors" then
+            if btn(5) then inv_hold = min(20, inv_hold + 1) else inv_hold = 0 end
+            if inv_hold >= 10 then inv_open = true end
+        end
         if btn(0) then dx = dx - 1 end
         if btn(1) then dx = dx + 1 end
         if btn(2) then dy = dy - 1 end
@@ -62,8 +76,26 @@ player = entity:new({
             self.anim = 0
         end
 
-        self.x = mid(4, self.x, (map_w_tiles * 8) - 4)
-        self.y = mid(4, self.y, (map_h_tiles * 8) - 4)
+        if scene == "indoors" then
+            local ox, oy = 64 - 20, 64 - 20
+            local minx, maxx = ox + 8 + 4, ox + 32 - 4
+            local miny = oy + 8 + 4
+            local doorcx = ox + 2 * 8 + 4
+            local maxy = oy + 3 * 8 + 4
+            if abs(self.x - doorcx) <= 4 then maxy = oy + 4 * 8 + 4 end
+            self.x = mid(minx, self.x, maxx)
+            self.y = mid(miny, self.y, maxy)
+            local doorcy = oy + 4 * 8 + 4
+            if btnp(5) and abs(self.x - doorcx) <= 4 and abs(self.y - doorcy) <= 6 then
+                scene = "outdoors"
+                day = (day or 0) + 1
+                request_outdoor_reset()
+                return
+            end
+        else
+            self.x = mid(4, self.x, (map_w_tiles * 8) - 4)
+            self.y = mid(4, self.y, (map_h_tiles * 8) - 4)
+        end
         if self.atk_timer and self.atk_timer > 0 then self.atk_timer -= 1 end
     end,
 

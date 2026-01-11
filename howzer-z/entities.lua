@@ -9,13 +9,23 @@ function spawn_enemy(name, params)
     return e
 end
 
+item_defs = {}
+function register_item(name, f) item_defs[name] = f end
+function spawn_item(name, p)
+    local f = item_defs[name]
+    if not f then return end
+    local it = f(p or {})
+    spawn_entity(it)
+    return it
+end
+
 -- example bird registration
 register_enemy(
     'bird', function(p)
         return enemy:new {
             x = p.x or 64, y = p.y or 64,
             spr_idle = 37, idle_frames = { 37, 38 }, walk_frames = { 37, 38 },
-            spd = 0.8, hp = 2, hitbox = { 'circle', 4 }, anim = 0, anim_speed = 12
+            spd = 0.5, hp = 2, hitbox = { 'circle', 4 }, anim = 0, anim_speed = 12
         }
     end
 )
@@ -26,10 +36,23 @@ register_enemy(
         return enemy:new {
             x = p.x or 64, y = p.y or 64,
             spr_idle = 36, idle_frames = {}, walk_frames = {},
-            spd = 0.8, hp = 2, hitbox = { 'circle', 4 }, anim = 0, anim_speed = 12
+            spd = 0.4, hp = 2, hitbox = { 'circle', 4 }, anim = 0, anim_speed = 12
         }
     end
 )
+
+register_item("flower", function(p) return make_item({x=p.x,y=p.y,id="flower",spr=19}) end)
+register_item("potion", function(p) return make_item({x=p.x,y=p.y,id="potion",spr=21}) end)
+
+function make_item(p)
+ return entity:new({
+  x=p.x or 0,y=p.y or 0,type="item",id=p.id,spr=p.spr,hitbox={'circle',4},
+  update=function(self)
+   if player_inst and collides(self,player_inst) then inv_add(self.id,1) self.dead=true end
+  end,
+  draw=function(self) spr(self.spr,self.x-4,self.y-4) end
+ })
+end
 
 spawn_entity = function(e)
     add(entities, e)
@@ -74,17 +97,17 @@ draw_entities = function()
     -- then draw foreground (player, enemies, base...)
 end
 
--- simple flower archetype (keeps entities together instead of separate files)
-flower = entity:new({
-    x = 0, y = 0, type = 'flower',
-    hitbox = { 'rect', nil, { w = 6, h = 8, ox = 0, oy = 0 } },
-    update = function(self)
-        if player_inst and collides(self, player_inst) then
-            self.dead = true
-        end
-    end,
-    draw = function(self) spr(19, self.x - 4, self.y - 4) end
-})
+-- -- simple flower archetype (keeps entities together instead of separate files)
+-- flower = entity:new({
+--     x = 0, y = 0, type = 'flower',
+--     hitbox = { 'rect', nil, { w = 6, h = 8, ox = 0, oy = 0 } },
+--     update = function(self)
+--         if player_inst and collides(self, player_inst) then
+--             self.dead = true
+--         end
+--     end,
+--     draw = function(self) spr(19, self.x - 4, self.y - 4) end
+-- })
 
 stump = entity:new({
     x = 0, y = 0, type = 'stump', hp = 5, solid = true,
@@ -102,8 +125,13 @@ base = entity:new({
         if not player_inst then return end
         if collides(self, player_inst) and btnp(5) then
             if scene == "outdoors" then
+                local dx, dy = indoor_draw_xy()
                 scene = "indoors"
-                player_inst.x, player_inst.y = 16, 16
+                spawn_player_in_room()
+                for e in all(entities) do
+                    if e.type == "enemy" then e.dead = true end
+                end
+                attacks = {}
             else
                 scene = "outdoors"
                 player_inst.x, player_inst.y = self.x + 12, self.y
@@ -213,7 +241,7 @@ function try_move(ent, dx, dy)
                 local ha = ent.hitbox and ent.hitbox[1] or 'circle'
                 local hb = e.hitbox and e.hitbox[1] or 'circle'
                 debug_messages = debug_messages or {}
-                add(debug_messages, "x col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
+                -- add(debug_messages, "x col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
                 if ent.hitbox and e.hitbox and ent.hitbox[1] == 'circle' and e.hitbox[1] == 'circle' then
                     local r1 = ent.hitbox[2]
                     local r2 = e.hitbox[2]
@@ -221,7 +249,7 @@ function try_move(ent, dx, dy)
                     local dys = ent.y - e.y
                     local d2 = dxs * dxs + dys * dys
                     local rr = (r1 + r2) * (r1 + r2)
-                    add(debug_messages, "dx:" .. tostring(dxs) .. " dy:" .. tostring(dys) .. " d2:" .. tostring(d2) .. " rr:" .. tostring(rr))
+                    -- add(debug_messages, "dx:" .. tostring(dxs) .. " dy:" .. tostring(dys) .. " d2:" .. tostring(d2) .. " rr:" .. tostring(rr))
                 end
             end
             ent.x = ox
@@ -235,7 +263,7 @@ function try_move(ent, dx, dy)
                 local ha = ent.hitbox and ent.hitbox[1] or 'circle'
                 local hb = e.hitbox and e.hitbox[1] or 'circle'
                 debug_messages = debug_messages or {}
-                add(debug_messages, "y col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
+                -- add(debug_messages, "y col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
                 if ent.hitbox and e.hitbox and ent.hitbox[1] == 'circle' and e.hitbox[1] == 'circle' then
                     local r1 = ent.hitbox[2]
                     local r2 = e.hitbox[2]
