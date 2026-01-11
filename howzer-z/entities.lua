@@ -20,6 +20,17 @@ register_enemy(
     end
 )
 
+-- example bird registration
+register_enemy(
+    'blob', function(p)
+        return enemy:new {
+            x = p.x or 64, y = p.y or 64,
+            spr_idle = 36, idle_frames = {}, walk_frames = {},
+            spd = 0.8, hp = 2, hitbox = { 'circle', 4 }, anim = 0, anim_speed = 12
+        }
+    end
+)
+
 spawn_entity = function(e)
     add(entities, e)
 end
@@ -84,8 +95,21 @@ stump = entity:new({
 })
 
 base = entity:new({
-    x = 64, y = 64, type = 'base', hp = 50, max_hp = 50, sprite = 32,
-    update = function(self) end,
+    x = 64, y = 64, type = 'base', hp = 50,
+    hitbox = { 'circle', 10 },
+    max_hp = 50, sprite = 32,
+    update = function(self)
+        if not player_inst then return end
+        if collides(self, player_inst) and btnp(5) then
+            if scene == "outdoors" then
+                scene = "indoors"
+                player_inst.x, player_inst.y = 16, 16
+            else
+                scene = "outdoors"
+                player_inst.x, player_inst.y = self.x + 12, self.y
+            end
+        end
+    end,
     draw = function(self) spr(self.sprite, self.x - 4, self.y - 4) end
 })
 
