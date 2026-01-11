@@ -77,7 +77,8 @@ flower = entity:new({
 
 stump = entity:new({
     x = 0, y = 0, type = 'stump', hp = 5, solid = true,
-    hitbox = { 'rect', nil, { w = 6, h = 3, ox = 0, oy = 1 } },
+    -- use a small circle hitbox for now; rect hitbox was causing unexpected blocking
+    hitbox = { 'circle', 4 },
     update = function(self) end,
     draw = function(self) spr(16, self.x - 4, self.y - 4) end
 })
@@ -105,12 +106,28 @@ enemy = entity:new({
     update = function(self)
         if not player_inst then return end
 
-        -- chase player
-        local dx, dy = player_inst.x - self.x, player_inst.y - self.y
-        local l = sqrt(dx * dx + dy * dy)
-        if l > 0 then dx, dy = dx / l, dy / l end
+        -- chase player / activation logic
+        local dx, dy = (player_inst.x - self.x), (player_inst.y - self.y)
+        local act_r = (self.activate_radius or 256)
+        -- IMPORTANT: avoid dx*dx overflow on large maps; use axis test
+        if not self.always_awake and (abs(dx) > act_r or abs(dy) > act_r) then
+            self.awake = false
+            if self.attack_timer and self.attack_timer > 0 then self.attack_timer -= 1 end
+            self.moving = false
+            return
+        end
+        self.awake = true
 
-        -- movement & per-axis collision
+        -- safe normalize (avoids overflow): scale by max component first
+        local adx, ady = abs(dx), abs(dy)
+        local m = max(adx, ady)
+        if m > 0 then
+            dx, dy = dx / m, dy / m
+            local l = sqrt(dx * dx + dy * dy)
+            if l > 0 then dx, dy = dx / l, dy / l end
+        end
+
+        -- movement & per-axis collision (incremental only)
         try_move(self, dx * self.spd, 0)
         try_move(self, 0, dy * self.spd)
 
@@ -121,7 +138,7 @@ enemy = entity:new({
             self.flip = 1
         end
 
-        local moving = abs(dx) > 0.01 or abs(dy) > 0.01
+        self.moving = abs(dx) > 0.01 or abs(dy) > 0.01
         local maxf = max(#(self.walk_frames or {}), #(self.idle_frames or {}))
         if maxf > 1 then
             self.anim = (self.anim + 1) % (maxf * self.anim_speed)
@@ -130,7 +147,7 @@ enemy = entity:new({
         end
 
         -- advance animation only if there are multiple walk frames
-        if abs(dx) > 0.01 or abs(dy) > 0.01 then
+        if self.moving then
             if type(self.walk_frames) == 'table' and #self.walk_frames > 1 then
                 self.anim = (self.anim + 1) % (#self.walk_frames * self.anim_speed)
             else
@@ -151,6 +168,7 @@ enemy = entity:new({
     end,
 
     draw = function(self)
+        local moving = self.moving
         local frames = (moving and (self.walk_frames or {})) or (self.idle_frames or {})
         if type(frames) ~= 'table' or #frames == 0 then frames = { self.spr_idle } end
         local frame = frames[1]
@@ -167,13 +185,45 @@ function try_move(ent, dx, dy)
     ent.x = ent.x + dx
     for e in all(entities) do
         if e ~= ent and e.solid and not e.dead and collides(ent, e) then
-            ent.x = ox break
+            if debug_map and ent == player_inst then
+                local ha = ent.hitbox and ent.hitbox[1] or 'circle'
+                local hb = e.hitbox and e.hitbox[1] or 'circle'
+                debug_messages = debug_messages or {}
+                add(debug_messages, "x col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
+                if ent.hitbox and e.hitbox and ent.hitbox[1] == 'circle' and e.hitbox[1] == 'circle' then
+                    local r1 = ent.hitbox[2]
+                    local r2 = e.hitbox[2]
+                    local dxs = ent.x - e.x
+                    local dys = ent.y - e.y
+                    local d2 = dxs * dxs + dys * dys
+                    local rr = (r1 + r2) * (r1 + r2)
+                    add(debug_messages, "dx:" .. tostring(dxs) .. " dy:" .. tostring(dys) .. " d2:" .. tostring(d2) .. " rr:" .. tostring(rr))
+                end
+            end
+            ent.x = ox
+            break
         end
     end
     ent.y = ent.y + dy
     for e in all(entities) do
         if e ~= ent and e.solid and not e.dead and collides(ent, e) then
-            ent.y = oy break
+            if debug_map and ent == player_inst then
+                local ha = ent.hitbox and ent.hitbox[1] or 'circle'
+                local hb = e.hitbox and e.hitbox[1] or 'circle'
+                debug_messages = debug_messages or {}
+                add(debug_messages, "y col: " .. flr(ent.x) .. "," .. flr(ent.y) .. " with " .. (e.type or "?") .. "(" .. hb .. ") @" .. flr(e.x) .. "," .. flr(e.y))
+                if ent.hitbox and e.hitbox and ent.hitbox[1] == 'circle' and e.hitbox[1] == 'circle' then
+                    local r1 = ent.hitbox[2]
+                    local r2 = e.hitbox[2]
+                    local dxs = ent.x - e.x
+                    local dys = ent.y - e.y
+                    local d2 = dxs * dxs + dys * dys
+                    local rr = (r1 + r2) * (r1 + r2)
+                    add(debug_messages, "dist2:" .. flr(d2) .. " rr:" .. flr(rr))
+                end
+            end
+            ent.y = oy
+            break
         end
     end
 end
