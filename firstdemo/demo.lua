@@ -2,12 +2,14 @@ function _init()
     demos = {
         { name = "grid & snap", init = demo1_init, update = demo1_update, draw = demo1_draw },
         { name = "jumping",     init = demo2_init, update = demo2_update, draw = demo2_draw },
-        { name = "orbiting",    init = demo3_init, update = demo3_update, draw = demo3_draw }
+        { name = "orbiting",    init = demo3_init, update = demo3_update, draw = demo3_draw },
+        { name = "projectiles", init = demo4_init, update = demo4_update, draw = demo4_draw },
+        { name = "targetting",  init = demo5_init, update = demo5_update, draw = demo5_draw }
     }
     demo_count = #demos
     demo_i = 1
     in_demo = false
-    prev_btn = { false, false, false, false, false, false }
+    
     demos[demo_i].init()
 end
 
